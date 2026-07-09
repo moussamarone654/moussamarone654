@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-School Finance — Gestion financière</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark">ES</span>
+      <div class="brand-text">
+        <span class="brand-title">E-School Finance</span>
+        <span class="brand-sub">Registre financier — E-School Groupe</span>
+      </div>
+    </div>
+    <div class="topbar-controls">
+      <label class="year-select">
+        <span>Exercice</span>
+        <select id="yearSelect"></select>
+      </label>
+      <div id="sessionBadge" class="session-badge">Direction (lecture seule)</div>
+      <button id="loginBtn" class="btn btn-ghost">Espace Trésorier</button>
+      <button id="logoutBtn" class="btn btn-ghost hidden">Déconnexion</button>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs">
+  <div class="tabs-inner">
+    <button class="tab active" data-tab="dashboard">Tableau de bord</button>
+    <button class="tab" data-tab="formateurs">Formateurs</button>
+    <button class="tab" data-tab="historique">Historique financier</button>
+    <button class="tab" data-tab="tresorier">Espace Trésorier</button>
+  </div>
+</nav>
+
+<main class="content">
+
+  <!-- ========== TABLEAU DE BORD ========== -->
+  <section id="tab-dashboard" class="tab-panel active">
+    <div class="cards-grid">
+      <div class="card card-balance">
+        <span class="card-label">Solde actuel</span>
+        <span class="card-value" id="cardSolde">0 FCFA</span>
+        <span class="card-foot">Cumul depuis l'origine</span>
+      </div>
+      <div class="card">
+        <span class="card-label">Recettes — mois en cours</span>
+        <span class="card-value card-positive" id="cardRecettes">0 FCFA</span>
+        <span class="card-foot">Paiements formateurs + autres entrées</span>
+      </div>
+      <div class="card">
+        <span class="card-label">Dépenses — mois en cours</span>
+        <span class="card-value card-negative" id="cardDepenses">0 FCFA</span>
+        <span class="card-foot">Toutes catégories confondues</span>
+      </div>
+      <div class="card">
+        <span class="card-label">Formateurs</span>
+        <span class="card-value" id="cardFormateurs">0</span>
+        <span class="card-foot"><span id="cardAJour">0</span> à jour ce mois-ci</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Dernières opérations</h2>
+      </div>
+      <div class="table-wrap">
+        <table class="ledger">
+          <thead>
+            <tr><th>Date</th><th>Description</th><th>Type</th><th class="num">Montant</th></tr>
+          </thead>
+          <tbody id="derniersOperationsBody"></tbody>
+        </table>
+        <p class="empty-state" id="derniersOperationsEmpty">Aucune opération enregistrée pour cet exercice.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== FORMATEURS ========== -->
+  <section id="tab-formateurs" class="tab-panel">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Liste des formateurs</h2>
+        <span class="panel-note" id="formateursAccessNote">Le détail des paiements est réservé au Trésorier connecté.</span>
+      </div>
+      <div class="table-wrap">
+        <table class="ledger">
+          <thead>
+            <tr><th>Nom</th><th>Formation / Matière</th><th class="num">Montant standard</th><th class="num">Payé cette année</th><th>Statut du mois</th></tr>
+          </thead>
+          <tbody id="formateursBody"></tbody>
+        </table>
+        <p class="empty-state" id="formateursEmpty">Aucun formateur enregistré.</p>
+      </div>
+    </div>
+
+    <div class="panel" id="etatPaiementsPanel">
+      <div class="panel-head">
+        <h2>État des paiements — vue mensuelle</h2>
+      </div>
+      <div class="table-wrap">
+        <table class="ledger ledger-compact" id="etatPaiementsTable"></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== HISTORIQUE ========== -->
+  <section id="tab-historique" class="tab-panel">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Historique financier</h2>
+        <span class="panel-note"><span id="historiqueCount">0</span> transaction(s) — exercice <span id="historiqueYearLabel"></span></span>
+      </div>
+      <div class="table-wrap">
+        <table class="ledger">
+          <thead>
+            <tr><th>Date</th><th>Description</th><th>Type</th><th class="num">Montant</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="historiqueBody"></tbody>
+        </table>
+        <p class="empty-state" id="historiqueEmpty">Aucune transaction enregistrée.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== ESPACE TRESORIER ========== -->
+  <section id="tab-tresorier" class="tab-panel">
+
+    <!-- Login gate -->
+    <div class="panel login-panel" id="loginPanel">
+      <div class="panel-head"><h2>Connexion Trésorier</h2></div>
+      <form id="loginForm" class="form-grid form-narrow">
+        <label class="field">
+          <span>Mot de passe</span>
+          <input type="password" id="loginPassword" required autocomplete="current-password">
+        </label>
+        <p class="field-error hidden" id="loginError">Mot de passe incorrect.</p>
+        <button type="submit" class="btn btn-primary">Se connecter</button>
+        <p class="hint">Mot de passe par défaut : <code>tresorier2026</code></p>
+      </form>
+    </div>
+
+    <!-- Treasurer workspace -->
+    <div id="tresorierWorkspace" class="hidden">
+
+      <div class="panel-grid">
+
+        <div class="panel">
+          <div class="panel-head"><h2>Nouveau formateur</h2></div>
+          <form id="formFormateur" class="form-grid">
+            <label class="field"><span>Nom du formateur</span><input type="text" id="fNom" required></label>
+            <label class="field"><span>Formation / Matière</span><input type="text" id="fMatiere" required></label>
+            <label class="field"><span>Montant de paiement standard (FCFA)</span><input type="number" id="fMontant" min="0" required></label>
+            <button type="submit" class="btn btn-primary">Ajouter le formateur</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Marquer un paiement</h2></div>
+          <form id="formPaiement" class="form-grid">
+            <label class="field"><span>Formateur</span>
+              <select id="pFormateur" required></select>
+            </label>
+            <label class="field"><span>Mois</span>
+              <select id="pMois" required></select>
+            </label>
+            <label class="field"><span>Montant payé (FCFA)</span><input type="number" id="pMontant" min="0" required></label>
+            <label class="field"><span>Date de paiement</span><input type="date" id="pDate" required></label>
+            <div class="btn-row">
+              <button type="submit" class="btn btn-primary">Marquer payé</button>
+              <button type="button" id="btnAnnulerPaiement" class="btn btn-outline">Annuler le paiement</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Autre entrée</h2></div>
+          <form id="formEntree" class="form-grid">
+            <label class="field"><span>Type</span>
+              <select id="eType">
+                <option value="Don">Don</option>
+                <option value="Subvention">Subvention</option>
+                <option value="Événement">Événement</option>
+                <option value="Vente">Vente</option>
+                <option value="Autre">Autre</option>
+              </select>
+            </label>
+            <label class="field"><span>Description</span><input type="text" id="eDescription" required></label>
+            <label class="field"><span>Montant (FCFA)</span><input type="number" id="eMontant" min="0" required></label>
+            <label class="field"><span>Date</span><input type="date" id="eDate" required></label>
+            <button type="submit" class="btn btn-primary">Enregistrer l'entrée</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Nouvelle dépense</h2></div>
+          <form id="formDepense" class="form-grid">
+            <label class="field"><span>Catégorie</span>
+              <select id="dCategorie">
+                <option value="Formateur">Formateur</option>
+                <option value="Salaire">Salaire</option>
+                <option value="Fourniture">Fourniture</option>
+                <option value="Loyer">Loyer</option>
+                <option value="Autre">Autre</option>
+              </select>
+            </label>
+            <label class="field"><span>Description</span><input type="text" id="dDescription" required></label>
+            <label class="field"><span>Montant (FCFA)</span><input type="number" id="dMontant" min="0" required></label>
+            <label class="field"><span>Date de dépense</span><input type="date" id="dDate" required></label>
+            <label class="field"><span>Mode de paiement</span>
+              <select id="dMode">
+                <option value="Espèces">Espèces</option>
+                <option value="Virement">Virement</option>
+                <option value="Chèque">Chèque</option>
+                <option value="Mobile Money">Mobile Money</option>
+              </select>
+            </label>
+            <button type="submit" class="btn btn-primary">Enregistrer la dépense</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Paramètres</h2></div>
+          <form id="formParametres" class="form-grid">
+            <label class="field"><span>Montant standard par défaut (FCFA)</span><input type="number" id="paramMontant" min="0"></label>
+            <button type="submit" class="btn btn-outline">Enregistrer les paramètres</button>
+          </form>
+          <hr class="divider">
+          <form id="formMotDePasse" class="form-grid">
+            <label class="field"><span>Mot de passe actuel</span><input type="password" id="mdpActuel" required></label>
+            <label class="field"><span>Nouveau mot de passe</span><input type="password" id="mdpNouveau" required minlength="4"></label>
+            <label class="field"><span>Confirmer le nouveau mot de passe</span><input type="password" id="mdpConfirm" required minlength="4"></label>
+            <p class="field-error hidden" id="mdpError"></p>
+            <p class="field-success hidden" id="mdpSuccess">Mot de passe mis à jour.</p>
+            <button type="submit" class="btn btn-outline">Changer le mot de passe</button>
+          </form>
+        </div>
+
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Gestion des formateurs</h2></div>
+        <div class="table-wrap">
+          <table class="ledger">
+            <thead>
+              <tr><th>Nom</th><th>Formation / Matière</th><th class="num">Montant standard</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="gestionFormateursBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <p>E-School Finance — Outil interne de gestion financière. Données stockées localement dans votre navigateur.</p>
+</footer>
+
+<!-- ========== MODALE DE CONFIRMATION ========== -->
+<div id="confirmModal" class="modal-overlay hidden">
+  <div class="modal">
+    <h3 id="confirmTitle">Confirmer la suppression</h3>
+    <p id="confirmMessage">Cette action est définitive.</p>
+    <label class="field">
+      <span>Mot de passe Trésorier</span>
+      <input type="password" id="confirmPassword">
+    </label>
+    <p class="field-error hidden" id="confirmError">Mot de passe incorrect.</p>
+    <div class="btn-row">
+      <button class="btn btn-outline" id="confirmCancel">Annuler</button>
+      <button class="btn btn-danger" id="confirmOk">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== TOAST ========== -->
+<div id="toast" class="toast hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
