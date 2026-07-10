@@ -53,7 +53,7 @@
       <div class="card">
         <span class="card-label">Recettes — mois en cours</span>
         <span class="card-value card-positive" id="cardRecettes">0 FCFA</span>
-        <span class="card-foot">Paiements formateurs + autres entrées</span>
+        <span class="card-foot">Dons, subventions, événements, ventes...</span>
       </div>
       <div class="card">
         <span class="card-label">Dépenses — mois en cours</span>
@@ -289,6 +289,67 @@
       <label class="field"><span>Montant de paiement standard (FCFA)</span><input type="number" id="editMontant" min="0" required></label>
       <div class="btn-row">
         <button type="button" class="btn btn-outline" id="btnAnnulerModifierFormateur">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========== MODALE MODIFIER TRANSACTION (Historique) ========== -->
+<div id="modalModifierTransaction" class="modal-overlay hidden">
+  <div class="modal">
+    <h3>Modifier la transaction</h3>
+    <form id="formModifierTransaction" class="form-grid">
+      <input type="hidden" id="editTxId">
+      <input type="hidden" id="editTxKind">
+
+      <div class="field hidden" id="editTxGroupFormateurInfo">
+        <span>Formateur / Mois concerné</span>
+        <p id="editTxFormateurInfo" style="margin:0;font-weight:600;color:var(--ink);"></p>
+      </div>
+
+      <label class="field hidden" id="editTxGroupType">
+        <span>Type</span>
+        <select id="editTxType">
+          <option value="Don">Don</option>
+          <option value="Subvention">Subvention</option>
+          <option value="Événement">Événement</option>
+          <option value="Vente">Vente</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </label>
+
+      <label class="field hidden" id="editTxGroupCategorie">
+        <span>Catégorie</span>
+        <select id="editTxCategorie">
+          <option value="Formateur">Formateur</option>
+          <option value="Salaire">Salaire</option>
+          <option value="Fourniture">Fourniture</option>
+          <option value="Loyer">Loyer</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </label>
+
+      <label class="field hidden" id="editTxGroupDescription">
+        <span>Description</span>
+        <input type="text" id="editTxDescription">
+      </label>
+
+      <label class="field hidden" id="editTxGroupMode">
+        <span>Mode de paiement</span>
+        <select id="editTxMode">
+          <option value="Espèces">Espèces</option>
+          <option value="Virement">Virement</option>
+          <option value="Chèque">Chèque</option>
+          <option value="Mobile Money">Mobile Money</option>
+        </select>
+      </label>
+
+      <label class="field"><span>Montant (FCFA)</span><input type="number" id="editTxMontant" min="0" required></label>
+      <label class="field"><span>Date</span><input type="date" id="editTxDate" required></label>
+
+      <div class="btn-row">
+        <button type="button" class="btn btn-outline" id="btnAnnulerModifierTransaction">Annuler</button>
         <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
       </div>
     </form>

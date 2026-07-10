@@ -101,8 +101,8 @@ function getAllTransactions() {
       id: "pai_" + p.id,
       raw: p, kind: "paiement",
       date: p.date,
-      description: `Paiement — ${f ? f.nom : "Formateur supprimé"} (${MOIS[p.mois]})`,
-      type: "Recette",
+      description: `Paiement formateur — ${f ? f.nom : "Formateur supprimé"} (${MOIS[p.mois]})`,
+      type: "Dépense",
       montant: p.montant,
     });
   });
@@ -287,12 +287,15 @@ function renderHistorique() {
       <td>${escapeHtml(t.description)}</td>
       <td class="${t.type === "Recette" ? "type-recette" : "type-depense"}">${t.type}</td>
       <td class="num">${t.type === "Recette" ? "+" : "−"} ${fmtMontant(t.montant)}</td>
-      <td>${tresorier ? `<button class="icon-btn danger" data-delete-tx="${t.id}">Supprimer</button>` : "—"}</td>`;
+      <td>${tresorier ? `<button class="icon-btn" data-edit-tx="${t.id}">Modifier</button> <button class="icon-btn danger" data-delete-tx="${t.id}">Supprimer</button>` : "—"}</td>`;
     body.appendChild(tr);
   });
 
   body.querySelectorAll("[data-delete-tx]").forEach(btn => {
     btn.addEventListener("click", () => askDeleteTransaction(btn.dataset.deleteTx));
+  });
+  body.querySelectorAll("[data-edit-tx]").forEach(btn => {
+    btn.addEventListener("click", () => openModifierTransaction(btn.dataset.editTx));
   });
 }
 
@@ -311,6 +314,83 @@ function askDeleteTransaction(txId) {
     },
   });
 }
+
+/* ---------- Modifier une transaction de l'historique ---------- */
+function openModifierTransaction(txId) {
+  const tx = getAllTransactions().find(t => t.id === txId);
+  if (!tx) return;
+
+  document.getElementById("editTxId").value = tx.id;
+  document.getElementById("editTxKind").value = tx.kind;
+
+  document.getElementById("editTxGroupType").classList.toggle("hidden", tx.kind !== "entree");
+  document.getElementById("editTxGroupCategorie").classList.toggle("hidden", tx.kind !== "depense");
+  document.getElementById("editTxGroupDescription").classList.toggle("hidden", tx.kind === "paiement");
+  document.getElementById("editTxGroupMode").classList.toggle("hidden", tx.kind === "entree");
+  document.getElementById("editTxGroupFormateurInfo").classList.toggle("hidden", tx.kind !== "paiement");
+
+  document.getElementById("editTxMontant").value = tx.raw.montant;
+  document.getElementById("editTxDate").value = tx.raw.date;
+
+  if (tx.kind === "entree") {
+    document.getElementById("editTxType").value = tx.raw.type;
+    document.getElementById("editTxDescription").value = tx.raw.description;
+  } else if (tx.kind === "depense") {
+    document.getElementById("editTxCategorie").value = tx.raw.categorie;
+    document.getElementById("editTxDescription").value = tx.raw.description;
+    document.getElementById("editTxMode").value = tx.raw.mode || "Espèces";
+  } else if (tx.kind === "paiement") {
+    document.getElementById("editTxMode").value = tx.raw.mode || "Espèces";
+    const f = state.formateurs.find(x => x.id === tx.raw.formateurId);
+    document.getElementById("editTxFormateurInfo").textContent = `${f ? f.nom : "Formateur supprimé"} — ${MOIS[tx.raw.mois]} ${tx.raw.annee}`;
+  }
+
+  document.getElementById("modalModifierTransaction").classList.remove("hidden");
+}
+
+document.getElementById("btnAnnulerModifierTransaction").addEventListener("click", () => {
+  document.getElementById("modalModifierTransaction").classList.add("hidden");
+});
+
+document.getElementById("formModifierTransaction").addEventListener("submit", e => {
+  e.preventDefault();
+  const kind = document.getElementById("editTxKind").value;
+  const id = document.getElementById("editTxId").value.split("_").slice(1).join("_");
+  const montant = Number(document.getElementById("editTxMontant").value);
+  const date = document.getElementById("editTxDate").value;
+
+  if (kind === "entree") {
+    const e2 = state.entrees.find(x => x.id === id);
+    if (e2) {
+      e2.type = document.getElementById("editTxType").value;
+      e2.description = document.getElementById("editTxDescription").value.trim();
+      e2.montant = montant;
+      e2.date = date;
+    }
+  } else if (kind === "depense") {
+    const d = state.depenses.find(x => x.id === id);
+    if (d) {
+      d.categorie = document.getElementById("editTxCategorie").value;
+      d.description = document.getElementById("editTxDescription").value.trim();
+      d.montant = montant;
+      d.date = date;
+      d.mode = document.getElementById("editTxMode").value;
+    }
+  } else if (kind === "paiement") {
+    const p = state.paiements.find(x => x.id === id);
+    if (p) {
+      p.montant = montant;
+      p.date = date;
+      p.annee = new Date(date).getFullYear();
+      p.mode = document.getElementById("editTxMode").value;
+    }
+  }
+
+  saveState();
+  document.getElementById("modalModifierTransaction").classList.add("hidden");
+  renderAll();
+  showToast("Transaction modifiée.", "success");
+});
 
 /* ---------- Trésorier workspace ---------- */
 function renderTresorierWorkspace() {
