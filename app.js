@@ -203,11 +203,40 @@ function renderFormateurs() {
       <td>${escapeHtml(f.matiere)}</td>
       <td class="num">${tresorier ? fmtMontant(f.montantStandard) : "•••••"}</td>
       <td class="num">${tresorier ? fmtMontant(payeCetteAnnee) : "•••••"}</td>
-      <td>${tresorier ? `<span class="pill ${statutMois ? "pill-success" : "pill-danger"}">${statutMois ? "Payé" : "Non payé"}</span>` : `<span class="pill pill-neutral">Accès restreint</span>`}</td>`;
+      <td>${tresorier ? `<span class="pill ${statutMois ? "pill-success" : "pill-danger"}">${statutMois ? "Payé" : "Non payé"}</span> <button class="icon-btn" data-modifier-statut="${f.id}">Modifier</button>` : `<span class="pill pill-neutral">Accès restreint</span>`}</td>`;
     body.appendChild(tr);
   });
 
+  body.querySelectorAll("[data-modifier-statut]").forEach(btn => {
+    btn.addEventListener("click", () => goToMarquerPaiement(btn.dataset.modifierStatut));
+  });
+
   renderEtatPaiements(tresorier);
+}
+
+function goToMarquerPaiement(formateurId) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  document.querySelector('[data-tab="tresorier"]').classList.add("active");
+  document.getElementById("tab-tresorier").classList.add("active");
+
+  const now = new Date();
+  const pFormateur = document.getElementById("pFormateur");
+  const pMois = document.getElementById("pMois");
+  if (pFormateur) pFormateur.value = formateurId;
+  if (pMois) pMois.value = now.getMonth();
+
+  const existing = state.paiements.find(p => p.formateurId === formateurId && p.mois === now.getMonth() && p.annee === now.getFullYear());
+  const pMontant = document.getElementById("pMontant");
+  const pDate = document.getElementById("pDate");
+  const pMode = document.getElementById("pMode");
+  if (existing) {
+    if (pMontant) pMontant.value = existing.montant;
+    if (pDate) pDate.value = existing.date;
+    if (pMode && existing.mode) pMode.value = existing.mode;
+  }
+  document.getElementById("formPaiement").scrollIntoView({ behavior: "smooth", block: "center" });
+  showToast("Corrigez le paiement puis validez « Marquer payé ».");
 }
 
 function renderEtatPaiements(tresorier) {
@@ -323,13 +352,52 @@ function renderTresorierWorkspace() {
       <td>${escapeHtml(f.nom)}</td>
       <td>${escapeHtml(f.matiere)}</td>
       <td class="num">${fmtMontant(f.montantStandard)}</td>
-      <td><button class="icon-btn danger" data-delete-formateur="${f.id}">Supprimer</button></td>`;
+      <td>
+        <button class="icon-btn" data-edit-formateur="${f.id}">Modifier</button>
+        <button class="icon-btn danger" data-delete-formateur="${f.id}">Supprimer</button>
+      </td>`;
     body.appendChild(tr);
   });
   body.querySelectorAll("[data-delete-formateur]").forEach(btn => {
     btn.addEventListener("click", () => askDeleteFormateur(btn.dataset.deleteFormateur));
   });
+  body.querySelectorAll("[data-edit-formateur]").forEach(btn => {
+    btn.addEventListener("click", () => openModifierFormateur(btn.dataset.editFormateur));
+  });
 }
+
+/* ---------- Modifier un formateur ---------- */
+function openModifierFormateur(id) {
+  const f = state.formateurs.find(x => x.id === id);
+  if (!f) return;
+  document.getElementById("editFormateurId").value = f.id;
+  document.getElementById("editNom").value = f.nom;
+  document.getElementById("editMatiere").value = f.matiere;
+  document.getElementById("editNombreEcoles").value = f.nombreEcoles || 0;
+  document.getElementById("editNomEcoles").value = f.nomEcoles || "";
+  document.getElementById("editMontant").value = f.montantStandard;
+  document.getElementById("modalModifierFormateur").classList.remove("hidden");
+}
+
+document.getElementById("btnAnnulerModifierFormateur").addEventListener("click", () => {
+  document.getElementById("modalModifierFormateur").classList.add("hidden");
+});
+
+document.getElementById("formModifierFormateur").addEventListener("submit", e => {
+  e.preventDefault();
+  const id = document.getElementById("editFormateurId").value;
+  const f = state.formateurs.find(x => x.id === id);
+  if (!f) return;
+  f.nom = document.getElementById("editNom").value.trim();
+  f.matiere = document.getElementById("editMatiere").value.trim();
+  f.nombreEcoles = Number(document.getElementById("editNombreEcoles").value);
+  f.nomEcoles = document.getElementById("editNomEcoles").value.trim();
+  f.montantStandard = Number(document.getElementById("editMontant").value);
+  saveState();
+  document.getElementById("modalModifierFormateur").classList.add("hidden");
+  renderAll();
+  showToast("Formateur modifié.", "success");
+});
 
 function askDeleteFormateur(id) {
   const f = state.formateurs.find(x => x.id === id);
@@ -435,9 +503,11 @@ document.getElementById("formFormateur").addEventListener("submit", e => {
   e.preventDefault();
   const nom = document.getElementById("fNom").value.trim();
   const matiere = document.getElementById("fMatiere").value.trim();
+  const nombreEcoles = Number(document.getElementById("fNombreEcoles").value);
+  const nomEcoles = document.getElementById("fNomEcoles").value.trim();
   const montant = Number(document.getElementById("fMontant").value);
-  if (!nom || !matiere) return;
-  state.formateurs.push({ id: uid(), nom, matiere, montantStandard: montant });
+  if (!nom || !matiere || !nomEcoles) return;
+  state.formateurs.push({ id: uid(), nom, matiere, nombreEcoles, nomEcoles, montantStandard: montant });
   saveState();
   e.target.reset();
   renderAll();
@@ -451,14 +521,15 @@ document.getElementById("formPaiement").addEventListener("submit", e => {
   const mois = Number(document.getElementById("pMois").value);
   const montant = Number(document.getElementById("pMontant").value);
   const date = document.getElementById("pDate").value;
+  const mode = document.getElementById("pMode").value;
   if (!formateurId || !date) { showToast("Veuillez sélectionner un formateur et une date.", "error"); return; }
   const annee = new Date(date).getFullYear();
 
   const existing = state.paiements.find(p => p.formateurId === formateurId && p.mois === mois && p.annee === annee);
   if (existing) {
-    existing.montant = montant; existing.date = date;
+    existing.montant = montant; existing.date = date; existing.mode = mode;
   } else {
-    state.paiements.push({ id: uid(), formateurId, mois, annee, montant, date, statut: "paye" });
+    state.paiements.push({ id: uid(), formateurId, mois, annee, montant, date, mode, statut: "paye" });
   }
   saveState();
   renderAll();

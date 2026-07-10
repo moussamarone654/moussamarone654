@@ -157,6 +157,8 @@
           <form id="formFormateur" class="form-grid">
             <label class="field"><span>Nom du formateur</span><input type="text" id="fNom" required></label>
             <label class="field"><span>Formation / Matière</span><input type="text" id="fMatiere" required></label>
+            <label class="field"><span>Nombre d'écoles</span><input type="number" id="fNombreEcoles" min="0" required></label>
+            <label class="field"><span>Nom des écoles</span><input type="text" id="fNomEcoles" placeholder="Ex : École A, École B" required></label>
             <label class="field"><span>Montant de paiement standard (FCFA)</span><input type="number" id="fMontant" min="0" required></label>
             <button type="submit" class="btn btn-primary">Ajouter le formateur</button>
           </form>
@@ -172,6 +174,14 @@
               <select id="pMois" required></select>
             </label>
             <label class="field"><span>Montant payé (FCFA)</span><input type="number" id="pMontant" min="0" required></label>
+            <label class="field"><span>Mode de paiement</span>
+              <select id="pMode">
+                <option value="Espèces">Espèces</option>
+                <option value="Virement">Virement</option>
+                <option value="Chèque">Chèque</option>
+                <option value="Mobile Money">Mobile Money</option>
+              </select>
+            </label>
             <label class="field"><span>Date de paiement</span><input type="date" id="pDate" required></label>
             <div class="btn-row">
               <button type="submit" class="btn btn-primary">Marquer payé</button>
@@ -265,6 +275,25 @@
 <footer class="footer">
   <p>E-School Finance — Outil interne de gestion financière. Données stockées localement dans votre navigateur.</p>
 </footer>
+
+<!-- ========== MODALE MODIFIER FORMATEUR ========== -->
+<div id="modalModifierFormateur" class="modal-overlay hidden">
+  <div class="modal">
+    <h3>Modifier le formateur</h3>
+    <form id="formModifierFormateur" class="form-grid">
+      <input type="hidden" id="editFormateurId">
+      <label class="field"><span>Nom du formateur</span><input type="text" id="editNom" required></label>
+      <label class="field"><span>Formation / Matière</span><input type="text" id="editMatiere" required></label>
+      <label class="field"><span>Nombre d'écoles</span><input type="number" id="editNombreEcoles" min="0" required></label>
+      <label class="field"><span>Nom des écoles</span><input type="text" id="editNomEcoles" required></label>
+      <label class="field"><span>Montant de paiement standard (FCFA)</span><input type="number" id="editMontant" min="0" required></label>
+      <div class="btn-row">
+        <button type="button" class="btn btn-outline" id="btnAnnulerModifierFormateur">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <!-- ========== MODALE DE CONFIRMATION ========== -->
 <div id="confirmModal" class="modal-overlay hidden">
