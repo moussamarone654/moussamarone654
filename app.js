@@ -424,13 +424,15 @@ function renderTresorierWorkspace() {
   const body = document.getElementById("gestionFormateursBody");
   body.innerHTML = "";
   if (state.formateurs.length === 0) {
-    body.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--ink-soft);">Aucun formateur enregistré.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--ink-soft);">Aucun formateur enregistré.</td></tr>`;
   }
   state.formateurs.forEach(f => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${escapeHtml(f.nom)}</td>
       <td>${escapeHtml(f.matiere)}</td>
+      <td class="num">${f.nombreEcoles || 0}</td>
+      <td>${escapeHtml(f.nomEcoles || "—")}</td>
       <td class="num">${fmtMontant(f.montantStandard)}</td>
       <td>
         <button class="icon-btn" data-edit-formateur="${f.id}">Modifier</button>
