@@ -36,17 +36,16 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  pushStateToFirestore();
+  pushStateToRemote();
 }
 
 /* ============================================================
-   SYNCHRONISATION FIREBASE FIRESTORE (données partagées en ligne)
+   SYNCHRONISATION EN LIGNE (npoint.io — données partagées)
    ============================================================ */
-const FIRESTORE_COLLECTION = "eschool_finance";
-const FIRESTORE_DOC = "shared_state";
-let db = null;
-let firestoreReady = false;
+const REMOTE_URL = "https://api.npoint.io/c8ba7505622a8dbd4ab9";
+const SYNC_INTERVAL_MS = 7000; // fréquence de vérification des mises à jour distantes
 let applyingRemoteUpdate = false; // évite les boucles d'écriture
+let remoteSyncEnabled = true;
 
 function setSyncBadge(mode) {
   const badge = document.getElementById("syncStatus");
@@ -57,58 +56,58 @@ function setSyncBadge(mode) {
   else { badge.textContent = "● Mode local (non partagé)"; badge.classList.add("sync-offline"); }
 }
 
-function initFirebase() {
-  if (typeof firebase === "undefined" || !window.firebaseConfig || window.firebaseConfig.apiKey === "VOTRE_API_KEY") {
-    console.warn("Firebase non configuré (voir firebase-config.js) — l'application fonctionne en mode local uniquement.");
-    setSyncBadge("offline");
-    return;
-  }
+function isMeaningfulRemoteState(remote) {
+  if (!remote || typeof remote !== "object") return false;
+  return Array.isArray(remote.formateurs) || Array.isArray(remote.paiements) ||
+         Array.isArray(remote.entrees) || Array.isArray(remote.depenses);
+}
+
+async function fetchRemoteState() {
   try {
-    firebase.initializeApp(window.firebaseConfig);
-    db = firebase.firestore();
-    firestoreReady = true;
-    subscribeToState();
+    const res = await fetch(REMOTE_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const remote = await res.json();
+    setSyncBadge("online");
+    if (isMeaningfulRemoteState(remote)) {
+      applyingRemoteUpdate = true;
+      state = {
+        ...defaultState(), ...remote,
+        auth: { ...defaultState().auth, ...(remote.auth || {}) },
+        settings: { ...defaultState().settings, ...(remote.settings || {}) },
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      applyingRemoteUpdate = false;
+      renderAll();
+    } else {
+      // Le bin est vide : on y envoie l'état local actuel pour l'initialiser
+      pushStateToRemote();
+    }
   } catch (e) {
-    console.error("Erreur d'initialisation Firebase :", e);
+    console.error("Erreur de synchronisation (lecture) :", e);
     setSyncBadge("error");
   }
 }
 
-function subscribeToState() {
-  db.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOC).onSnapshot(
-    docSnap => {
-      setSyncBadge("online");
-      if (docSnap.exists) {
-        const remote = docSnap.data();
-        applyingRemoteUpdate = true;
-        state = {
-          ...defaultState(), ...remote,
-          auth: { ...defaultState().auth, ...(remote.auth || {}) },
-          settings: { ...defaultState().settings, ...(remote.settings || {}) },
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        applyingRemoteUpdate = false;
-        renderAll();
-      } else {
-        // Aucune donnée en ligne pour l'instant : on y envoie l'état local actuel
-        pushStateToFirestore();
-      }
-    },
-    err => {
-      console.error("Erreur de synchronisation Firestore :", err);
-      setSyncBadge("error");
-      showToast("Connexion au serveur impossible — vos actions restent en mode local.", "error");
-    }
-  );
+async function pushStateToRemote() {
+  if (!remoteSyncEnabled || applyingRemoteUpdate) return;
+  try {
+    const res = await fetch(REMOTE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(state),
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    setSyncBadge("online");
+  } catch (e) {
+    console.error("Erreur de synchronisation (écriture) :", e);
+    setSyncBadge("error");
+    showToast("Échec de la synchronisation en ligne — la donnée reste enregistrée localement.", "error");
+  }
 }
 
-function pushStateToFirestore() {
-  if (!firestoreReady || !db || applyingRemoteUpdate) return;
-  db.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOC).set(state).catch(e => {
-    console.error("Erreur d'enregistrement Firestore :", e);
-    setSyncBadge("error");
-    showToast("Échec de la synchronisation en ligne.", "error");
-  });
+function initRemoteSync() {
+  fetchRemoteState();
+  setInterval(fetchRemoteState, SYNC_INTERVAL_MS);
 }
 
 function isTresorier() {
@@ -792,5 +791,5 @@ function setDefaultDates() {
 
 /* ---------- Init ---------- */
 setDefaultDates();
-initFirebase();
-renderAll(); // affichage immédiat avec le cache local ; sera mis à jour dès la connexion Firestore
+initRemoteSync();
+renderAll(); // affichage immédiat avec le cache local ; sera mis à jour dès la première synchronisation

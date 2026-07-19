@@ -39,28 +39,24 @@ Aucune installation n'est nécessaire. C'est une application 100% front-end (HTM
 
 Toutes les données sont stockées localement dans le navigateur via `localStorage`. Il n'y a pas de base de données ni de serveur : les données restent sur l'appareil utilisé. Pensez à utiliser toujours le même navigateur/appareil pour la saisie, ou à exporter régulièrement une sauvegarde si besoin (fonctionnalité à ajouter en évolution future).
 
-## Synchronisation en ligne (Firebase Firestore)
+## Synchronisation en ligne (npoint.io)
 
-Depuis cette version, l'application peut partager ses données **en temps réel entre tous les utilisateurs du lien**, via Firebase Firestore (gratuit).
+L'application partage désormais ses données **entre tous les utilisateurs du lien**, via un espace de stockage en ligne gratuit ([npoint.io](https://www.npoint.io)).
 
-### Configuration (à faire une seule fois)
+### Fonctionnement
 
-1. Allez sur [https://console.firebase.google.com](https://console.firebase.google.com) et créez un projet gratuit.
-2. Dans le menu de gauche : **Firestore Database** → **Créer une base de données** → démarrez en **mode test**.
-3. Une fois créée, ouvrez l'onglet **Règles** de Firestore et collez le contenu du fichier `firestore.rules.txt` fourni dans cette archive, puis cliquez sur **Publier**.
-4. Retournez dans **Paramètres du projet** (icône ⚙️) → section **Vos applications** → cliquez sur l'icône Web `</>` pour ajouter une application.
-5. Copiez les valeurs affichées (`apiKey`, `authDomain`, `projectId`, etc.) et collez-les dans le fichier `firebase-config.js` de cette archive, à la place des `"VOTRE_..."`.
-6. Republiez votre site (GitHub Pages, Netlify, etc.) avec les fichiers mis à jour.
+- Toutes les données (formateurs, paiements, entrées, dépenses) sont enregistrées à cette adresse :
+  `https://api.npoint.io/c8ba7505622a8dbd4ab9`
+- Chaque appareil vérifie automatiquement les nouvelles données **toutes les 7 secondes**.
+- Un badge en haut à droite indique l'état :
+  - **● En ligne — données partagées** (vert) : la synchronisation fonctionne.
+  - **● Erreur de connexion** (rouge) : problème réseau temporaire, l'app continue de fonctionner en local et réessaiera automatiquement.
 
-### Résultat
+### Important — à savoir
 
-- Un badge en haut à droite indique l'état : **● En ligne — données partagées** (vert) ou **● Mode local** (gris, si Firebase n'est pas configuré ou hors ligne).
-- Toute personne qui ouvre le lien voit **les mêmes données**, mises à jour automatiquement dès qu'un changement est fait par n'importe qui (pas besoin de recharger la page).
-- Si Firebase n'est pas configuré, l'application continue de fonctionner **en mode local uniquement** (comme avant), sans erreur bloquante.
-
-### Limite de sécurité actuelle
-
-Les règles fournies (`allow read, write: if true`) rendent la base accessible à toute personne connaissant l'URL du projet. Le mot de passe Trésorier protège l'usage dans l'application, mais pas l'accès direct à la base. Pour un usage réellement sensible, une authentification Firebase (comptes utilisateurs) peut être ajoutée en complément — à demander si besoin.
+- L'adresse `https://api.npoint.io/...` fait office de "mot de passe d'accès" à vos données : **ne la partagez pas publiquement** (ex: pas dans un dépôt GitHub public visible par tous, pas sur les réseaux sociaux). Toute personne connaissant cette adresse peut lire et modifier les données.
+- Les mises à jour ne sont pas instantanées comme avec un vrai serveur : il peut y avoir jusqu'à 7 secondes de délai avant qu'un changement apparaisse chez les autres utilisateurs.
+- npoint.io est un service gratuit tiers, pratique pour un usage interne, mais moins robuste qu'une vraie base de données pour un usage à grande échelle ou très sensible.
 
 
 ## Structure des fichiers
@@ -69,8 +65,6 @@ Les règles fournies (`allow read, write: if true`) rendent la base accessible �
 eschool-finance/
 ├── index.html            # Structure de l'application
 ├── style.css             # Design (palette, typographie, mise en page)
-├── app.js                # Logique applicative + synchronisation Firestore
-├── firebase-config.js    # Vos clés de configuration Firebase (à remplir)
-├── firestore.rules.txt   # Règles de sécurité à coller dans la console Firebase
+├── app.js                # Logique applicative + synchronisation npoint.io
 └── README.md
 ```
