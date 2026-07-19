@@ -36,6 +36,79 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  pushStateToFirestore();
+}
+
+/* ============================================================
+   SYNCHRONISATION FIREBASE FIRESTORE (données partagées en ligne)
+   ============================================================ */
+const FIRESTORE_COLLECTION = "eschool_finance";
+const FIRESTORE_DOC = "shared_state";
+let db = null;
+let firestoreReady = false;
+let applyingRemoteUpdate = false; // évite les boucles d'écriture
+
+function setSyncBadge(mode) {
+  const badge = document.getElementById("syncStatus");
+  if (!badge) return;
+  badge.classList.remove("sync-online", "sync-offline", "sync-error");
+  if (mode === "online") { badge.textContent = "● En ligne — données partagées"; badge.classList.add("sync-online"); }
+  else if (mode === "error") { badge.textContent = "● Erreur de connexion"; badge.classList.add("sync-error"); }
+  else { badge.textContent = "● Mode local (non partagé)"; badge.classList.add("sync-offline"); }
+}
+
+function initFirebase() {
+  if (typeof firebase === "undefined" || !window.firebaseConfig || window.firebaseConfig.apiKey === "VOTRE_API_KEY") {
+    console.warn("Firebase non configuré (voir firebase-config.js) — l'application fonctionne en mode local uniquement.");
+    setSyncBadge("offline");
+    return;
+  }
+  try {
+    firebase.initializeApp(window.firebaseConfig);
+    db = firebase.firestore();
+    firestoreReady = true;
+    subscribeToState();
+  } catch (e) {
+    console.error("Erreur d'initialisation Firebase :", e);
+    setSyncBadge("error");
+  }
+}
+
+function subscribeToState() {
+  db.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOC).onSnapshot(
+    docSnap => {
+      setSyncBadge("online");
+      if (docSnap.exists) {
+        const remote = docSnap.data();
+        applyingRemoteUpdate = true;
+        state = {
+          ...defaultState(), ...remote,
+          auth: { ...defaultState().auth, ...(remote.auth || {}) },
+          settings: { ...defaultState().settings, ...(remote.settings || {}) },
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        applyingRemoteUpdate = false;
+        renderAll();
+      } else {
+        // Aucune donnée en ligne pour l'instant : on y envoie l'état local actuel
+        pushStateToFirestore();
+      }
+    },
+    err => {
+      console.error("Erreur de synchronisation Firestore :", err);
+      setSyncBadge("error");
+      showToast("Connexion au serveur impossible — vos actions restent en mode local.", "error");
+    }
+  );
+}
+
+function pushStateToFirestore() {
+  if (!firestoreReady || !db || applyingRemoteUpdate) return;
+  db.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOC).set(state).catch(e => {
+    console.error("Erreur d'enregistrement Firestore :", e);
+    setSyncBadge("error");
+    showToast("Échec de la synchronisation en ligne.", "error");
+  });
 }
 
 function isTresorier() {
@@ -719,4 +792,5 @@ function setDefaultDates() {
 
 /* ---------- Init ---------- */
 setDefaultDates();
-renderAll();
+initFirebase();
+renderAll(); // affichage immédiat avec le cache local ; sera mis à jour dès la connexion Firestore

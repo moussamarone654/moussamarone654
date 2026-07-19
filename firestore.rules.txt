@@ -1,0 +1,28 @@
+// ============================================================
+// RÈGLES DE SÉCURITÉ FIRESTORE — E-School Finance
+// ============================================================
+// Où les mettre :
+//   Console Firebase → Firestore Database → onglet "Règles"
+//   → collez ce contenu → Publier.
+//
+// Ces règles autorisent la lecture et l'écriture sur le document
+// partagé de l'application (aucune authentification Firebase n'est
+// utilisée : la protection "Trésorier" se fait uniquement par mot
+// de passe côté application, comme avant).
+//
+// ⚠️ Cela signifie que toute personne connaissant l'URL Firestore
+// pourrait techniquement lire/modifier les données. Pour une vraie
+// mise en production, il est recommandé d'ajouter l'authentification
+// Firebase (Firebase Auth) et de restreindre l'accès en écriture aux
+// utilisateurs authentifiés. Dites-le moi si vous voulez cette étape
+// supplémentaire.
+// ============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /eschool_finance/{docId} {
+      allow read, write: if true;
+    }
+  }
+}

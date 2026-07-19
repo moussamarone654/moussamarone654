@@ -96,6 +96,17 @@ code {
 }
 .session-badge.tresorier { background: var(--accent); color: var(--ink); border-color: var(--accent); font-weight: 600; }
 
+.sync-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.25);
+}
+.sync-online { background: rgba(46,125,91,0.25); color: #B7F0D6; border-color: rgba(46,125,91,0.4); }
+.sync-offline { background: rgba(255,255,255,0.08); color: #C9D4E0; }
+.sync-error { background: rgba(179,67,43,0.25); color: #F6CFC3; border-color: rgba(179,67,43,0.4); }
+
 /* ===== Buttons ===== */
 .btn {
   font-family: "Inter", sans-serif;
